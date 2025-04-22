@@ -1,0 +1,9 @@
+services:
+  - type: web
+    plan: free
+    name: app-auth
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: SERVER_PORT
+        value: "8080"

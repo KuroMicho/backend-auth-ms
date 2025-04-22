@@ -1,0 +1,40 @@
+services:
+  mongo:
+    image: mongo:4.4.29
+    restart: unless-stopped
+    ports:
+      - $MONGODB_LOCAL_PORT:$MONGODB_DOCKER_PORT
+    volumes:
+      - db:/data/db
+    env_file:
+      - .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=$MONGODB_USER
+      - MONGO_INITDB_ROOT_PASSWORD=$MONGODB_PASSWORD
+
+  app: # optional
+    build: .
+    depends_on:
+      - mongo
+    env_file: 
+      - .env
+    ports:
+      - "${SPRING_LOCAL_PORT}:${SPRING_DOCKER_PORT}"
+    volumes:
+      - .:/app
+    stdin_open: true     # Habilita interacción con la terminal
+    tty: true            # Asigna una pseudo-terminal
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - 8081:8081
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://$MONGODB_USER:$MONGODB_PASSWORD@mongo:$MONGODB_DOCKER_PORT
+      - ME_CONFIG_MONGODB_AUTH_USERNAME=admin
+      - ME_CONFIG_MONGODB_AUTH_PASSWORD=pass
+volumes:
+  db:
