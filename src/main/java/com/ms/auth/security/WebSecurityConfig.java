@@ -1,12 +1,11 @@
 package com.ms.auth.security;
 
-import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -49,24 +48,21 @@ public class WebSecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    /*
-     * @Bean
-     * public CorsConfigurationSource corsConfigurationSource() {
-     * CorsConfiguration configuration = new CorsConfiguration();
-     * configuration.setAllowedOrigins(Arrays.asList("*"));
-     * configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE",
-     * "OPTIONS"));
-     * configuration.setAllowedHeaders(Arrays.asList("*"));
-     * UrlBasedCorsConfigurationSource source = new
-     * UrlBasedCorsConfigurationSource();
-     * source.registerCorsConfiguration("/**", configuration);
-     * return source;
-     * }
-     */
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("*")); // O tus dominios específicos
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(exceptionHandling -> exceptionHandling.authenticationEntryPoint(unauthorizedHandler))
                 .authorizeHttpRequests(

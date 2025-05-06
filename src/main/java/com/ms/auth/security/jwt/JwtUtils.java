@@ -56,6 +56,14 @@ public class JwtUtils {
         }
     }
 
+    public Claims getAllClaimsFromToken(String token) {
+        return Jwts.parser()
+                .verifyWith(key())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
     public boolean validateJwtToken(String token) {
         try {
             Jwts.parser()

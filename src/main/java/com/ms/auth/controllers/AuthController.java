@@ -1,5 +1,6 @@
 package com.ms.auth.controllers;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -7,6 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,6 +16,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,6 +38,7 @@ import com.ms.auth.security.jwt.JwtUtils;
 import com.ms.auth.security.services.RefreshTokenService;
 import com.ms.auth.security.services.UserDetailsImpl;
 
+import io.jsonwebtoken.Claims;
 import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.PostMapping;
@@ -60,6 +65,30 @@ public class AuthController {
 
     @Autowired
     RefreshTokenService refreshTokenService;
+
+    @GetMapping("/users/{username}")
+    public ResponseEntity<?> getUserByUsername(@PathVariable String username) {
+        try {
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Error: User not found."));
+
+            // Mapeamos a un DTO para no exponer datos sensibles
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId());
+            response.put("username", user.getUsername());
+            response.put("email", user.getEmail());
+            response.put("roles", user.getRoles().stream()
+                    .map(role -> role.getName().name())
+                    .collect(Collectors.toList()));
+
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -149,13 +178,29 @@ public class AuthController {
     }
 
     @PostMapping("/validateToken")
-    public ResponseEntity<Boolean> validateToken(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> validateToken(@RequestBody Map<String, String> request) {
         try {
             String token = request.get("token");
-            boolean isValid = jwtUtils.validateJwtToken(token);
-            return ResponseEntity.ok(isValid);
+
+            if (!jwtUtils.validateJwtToken(token)) {
+                return ResponseEntity.ok(false);
+            }
+
+            Claims claims = jwtUtils.getAllClaimsFromToken(token);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("isValid", true);
+            response.put("username", claims.getSubject());
+            // response.put("issuedAt", claims.getIssuedAt());
+            // response.put("expiration", claims.getExpiration());
+
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            return ResponseEntity.ok(false);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("isValid", false);
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
         }
     }
 
