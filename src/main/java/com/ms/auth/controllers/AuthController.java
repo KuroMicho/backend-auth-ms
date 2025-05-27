@@ -205,12 +205,13 @@ public class AuthController {
     }
 
     @PostMapping("/signout")
-    public ResponseEntity<?> logoutUser() {
-        UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication()
-                .getPrincipal();
-        String userId = userDetails.getId();
-        refreshTokenService.deleteByUserId(userId);
+    public ResponseEntity<?> logoutUser(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Error: User not found."));
+
+        refreshTokenService.deleteByUserId(user.getId());
         return ResponseEntity.ok(new MessageResponse("Log out successful!"));
     }
-
 }
